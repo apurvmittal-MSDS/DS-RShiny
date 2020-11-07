@@ -63,7 +63,13 @@ ui <- fluidPage(
                     selected = 1),
        radioButtons("plot_type", "Select Plot Type",
                c("Histogram" = "histogram",
-                 "Box Plot" = "box")),
+                 "Box Plot" = "box",
+                 "Scatter Plot" = "scatter")),
+  
+      checkboxInput("line",
+      label = "Show Regression Line",
+      value = FALSE),
+      
        selectInput("select_state", label = h5("Select a State"), 
                     choices = unique(data1$State), 
                     selected = 1),
@@ -72,7 +78,7 @@ ui <- fluidPage(
     ),
     
     # Main panel for displaying outputs ----
-    mainPanel(width = 6,height = 10,
+    mainPanel(width = 6,height = "6000px",
       
       # Output: Plots ----
       plotOutput(outputId = "distPlot")
@@ -92,7 +98,7 @@ server <- function(input, output) {
     
     if(input$select == "ABV" && input$plot_type == "histogram")
     {
-    x    <- data1%>%filter(data1$State=="TX")%>%select(ABV)
+    x <- data1%>%filter(data1$State==input$select_state)%>%select(ABV)
     x<-as.numeric(unlist(x))
     bins <- seq(min(x), max(x), length.out = input$bins + 1)
     
@@ -102,7 +108,8 @@ server <- function(input, output) {
     }
     if(input$select == "IBU" && input$plot_type == "histogram")
     {
-    x    <- beers1$IBU
+    x <- data1%>%filter(data1$State==input$select_state)%>%select(IBU)
+    x<-as.numeric(unlist(x))
     bins <- seq(min(x), max(x), length.out = input$bins + 1)
     
     hist(x, breaks = bins, col = "#75AADB", border = "white",
@@ -111,7 +118,8 @@ server <- function(input, output) {
     }
     if(input$select == "ABV" && input$plot_type == "box")
     {
-    x    <- beers1$ABV
+    x <- data1%>%filter(data1$State==input$select_state)%>%select(ABV)
+    x<-as.numeric(unlist(x))
     boxplot(x, col = "#75AADB", border = "black",
     xlab = "Alcohol Content",
     main = "Boxplot of Alcohol Content in Beers")
@@ -119,12 +127,29 @@ server <- function(input, output) {
     
     if(input$select == "IBU" && input$plot_type == "box")
     {
-    x    <- beers1$IBU
+    x <- data1%>%filter(data1$State==input$select_state)%>%select(IBU)
+    x<-as.numeric(unlist(x))
     boxplot(x, col = "#75AADB", border = "black",
     xlab = "Bitterness Unit",
     main = "Boxplot of Bitterness of Beers")
     }
-  }
+   
+    if(input$plot_type == "scatter" && input$line == TRUE)
+    {
+    data1%>%filter(data1$State==input$select_state) %>% ggplot() + geom_point(aes(x=ABV, y=IBU), color="steelblue", size = 1.5) + geom_smooth(aes(x=ABV, y=IBU),method = "lm")+ labs(x='ABV Value', y="IBU Value", title="Relation between IBU and ABV for State: ") + theme_economist() + annotate("text",x=0.10, y=145, label = input$select_state, color="darkred", size=5)
+     
+   } 
+   
+    else if(input$plot_type == "scatter" && input$line == FALSE)
+    {
+    data1%>%filter(data1$State==input$select_state) %>% ggplot() + geom_point(aes(x=ABV, y=IBU), color="steelblue", size = 1.5) + labs(x='ABV Value', y="IBU Value", title="Relation between IBU and ABV for State: ") + theme_economist() + annotate("text",x=0.10, y=145, label = input$select_state, color="darkred", size=5)
+     
+   } 
+    
+    
+      
+   } 
+  
   )
   
 }
