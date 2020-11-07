@@ -1,0 +1,134 @@
+---
+title: "Beer Case Study"
+author: "Apurv"
+output: html_document
+runtime: shiny
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+```{r}
+# Load Libraries
+library(shiny)
+library(shinythemes)
+library(tidyr)
+library(ggthemes)
+library(ggplot2)
+library(dplyr)
+```
+
+```{r}
+# Load the CSVs
+breweries = read.csv("./Breweries.csv")
+beers = read.csv("./Beers.csv")
+beers$ABV<-as.numeric(beers$ABV)
+beers$IBU<-as.numeric(beers$IBU)
+beers1<-na.omit(beers)
+```
+
+```{r}
+#Merge beer data with the breweries data 
+data = merge(x=breweries, y=beers, by.y ="Brewery_id" , by.x = "Brew_ID")
+# Rename the variables
+#data = data%>%rename(Beer.Name=Name.y, Brewery = Name.x)
+data1<-na.omit(data)
+data1$State<-trimws(data1$State)
+
+```
+
+```{r echo = FALSE}
+
+library(shiny)
+# App title ----
+ui <- fluidPage(
+  
+  # Sidebar layout with input and output definitions ----
+  sidebarLayout(
+    
+    # Sidebar panel for inputs ----
+    sidebarPanel(
+      
+      #Input: Slider for the number of bins ----
+      sliderInput(inputId = "bins",
+                  label = "Number of bins:",
+                  min = 10,
+                  max = 50,
+                  value = 30),
+
+      #Copy the line below to make a select box 
+       selectInput("select", label = h5("Plots"), 
+                    choices = list("Alcohol by Volume" = "ABV", "Bitterness" = "IBU"), 
+                    selected = 1),
+       radioButtons("plot_type", "Select Plot Type",
+               c("Histogram" = "histogram",
+                 "Box Plot" = "box")),
+       selectInput("select_state", label = h5("Select a State"), 
+                    choices = unique(data1$State), 
+                    selected = 1),
+                  hr(),
+                  fluidRow(column(3, verbatimTextOutput("value")))
+    ),
+    
+    # Main panel for displaying outputs ----
+    mainPanel(width = 6,height = 10,
+      
+      # Output: Plots ----
+      plotOutput(outputId = "distPlot")
+      
+    )
+  )
+)
+
+
+# Define server logic required to draw a histogram ----
+server <- function(input, output) {
+  
+
+  # 1. It is "reactive" and therefore should be automatically
+  # 2. Its output type is a plot
+  output$distPlot <- renderPlot({
+    
+    if(input$select == "ABV" && input$plot_type == "histogram")
+    {
+    x    <- data1%>%filter(data1$State=="TX")%>%select(ABV)
+    x<-as.numeric(unlist(x))
+    bins <- seq(min(x), max(x), length.out = input$bins + 1)
+    
+    hist(x, breaks = bins, col = "#75AADB", border = "white",
+         xlab = "Alcohol By Volume ",
+         main = "Histogram of Alcohol Content")
+    }
+    if(input$select == "IBU" && input$plot_type == "histogram")
+    {
+    x    <- beers1$IBU
+    bins <- seq(min(x), max(x), length.out = input$bins + 1)
+    
+    hist(x, breaks = bins, col = "#75AADB", border = "white",
+         xlab = "Bitterness Unit",
+         main = "Histogram of Bitterness of Beers")
+    }
+    if(input$select == "ABV" && input$plot_type == "box")
+    {
+    x    <- beers1$ABV
+    boxplot(x, col = "#75AADB", border = "black",
+    xlab = "Alcohol Content",
+    main = "Boxplot of Alcohol Content in Beers")
+    }
+    
+    if(input$select == "IBU" && input$plot_type == "box")
+    {
+    x    <- beers1$IBU
+    boxplot(x, col = "#75AADB", border = "black",
+    xlab = "Bitterness Unit",
+    main = "Boxplot of Bitterness of Beers")
+    }
+  }
+  )
+  
+}
+
+shinyApp(ui, server)
+
+```
